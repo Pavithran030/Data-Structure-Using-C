@@ -1,112 +1,289 @@
-/*Implementation of Shortest Path Algorithm
-A logistics company needs to calculate the shortest route for a fleet of trucks 
-to travel between multiple warehouses and client locations. The routes are 
-represented as a weighted graph, and the program should allow dynamic updates as 
-new destinations are added.*/
+Scenario 1: A navigation system for delivery trucks needs to calculate the 
+shortest path between various locations in a city. The locations and distances 
+are represented as a graph, and the system must dynamically handle updates as 
+new routes are added or removed
 
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <limits.h>
+#include<stdio.h>
+#include<limits.h>
 
-#define MAX_NODES 100
+#define V 5  
 
-typedef struct {
-    int num;
-    int adjmat[MAX_NODES][MAX_NODES];
-} Graph;
-
-void initGraph(Graph *graph, int num) {
-    graph->num = num;
-    for (int i = 0; i < num; i++)
-        for (int j = 0; j < num; j++)
-            graph->adjmat[i][j] = (i == j) ? 0 : INT_MAX;
+int minDistance(int dist[],int visited[]){
+    int min=INT_MAX,minIndex;
+    for(int v=0;v<V;v++)
+        if(!visited[v] && dist[v]<= min)
+            min=dist[v],minIndex=v;
+    return minIndex;
 }
 
-void addEdge(Graph *graph, int src, int dest, int weight) {
-    if (weight >= 0) {
-        graph->adjmat[src][dest] = weight;
-        graph->adjmat[dest][src] = weight;
-    } else {
-        printf("Invalid edge weight.\n");
-    }
-}
+void dijkstra(int graph[V][V],int src){
+    int dist[V],visited[V] ={0};
 
-int minDistance(int dist[], int visited[], int num) {
-    int min = INT_MAX, min_index;
-    for (int v = 0; v < num; v++)
-        if (!visited[v] && dist[v] <= min)
-            min = dist[v], min_index = v;
-    return min_index;
-}
+    for(int i=0;i<V;i++) dist[i]=INT_MAX;
+    dist[src]=0;
 
-void dijkstra(Graph *graph, int src) {
-    int num = graph->num, dist[MAX_NODES], visited[MAX_NODES] = {0};
-    for (int i = 0; i < num; i++) dist[i] = INT_MAX;
-    dist[src] = 0;
+    for(int count=0;count<V-1;count++){
+        int u=minDistance(dist,visited);
+        visited[u]=1;
 
-    for (int count = 0; count < num - 1; count++) {
-        int u = minDistance(dist, visited, num);
-        visited[u] = 1;
-        for (int v = 0; v < num; v++)
-            if (!visited[v] && graph->adjmat[u][v] != INT_MAX && dist[u] != INT_MAX &&
-                dist[u] + graph->adjmat[u][v] < dist[v])
-                dist[v] = dist[u] + graph->adjmat[u][v];
+        for(int v=0;v<V;v++)
+            if(!visited[v] && graph[u][v] && dist[u]+graph[u][v]<dist[v])
+                dist[v]=dist[u]+graph[u][v];
     }
 
-    printf("Shortest distances from location %d:\n", src);
-    for (int i = 0; i < num; i++)
-        printf("Location %d: %d\n", i, dist[i] == INT_MAX ? -1 : dist[i]);
-
+    printf("Vertex \t Distance from Source\n");
+    for(int i=0;i<V;i++) printf("%d \t\t %d\n",i,dist[i]);
 }
 
-int main() {
-    int num, num_edges, src, choice;
-    Graph graph;
+int main(){
+    int graph[V][V] ={
+       {0,10,0,0,5},
+       {10,0,1,0,2},
+       {0,1,0,4,0},
+       {0,0,4,0,3},
+       {5,2,0,3,0}};
 
-    printf("Enter the number of locations: ");
-    scanf("%d", &num);
-    if (num <= 0 || num > MAX_NODES) return 1;
+    dijkstra(graph,0);
+    return 0;
+}
 
-    initGraph(&graph, num);
-    printf("Enter the number of edges: ");
-    scanf("%d", &num_edges);
 
-    for (int i = 0; i < num_edges; i++) {
-        int src, dest, weight;
-        printf("Enter source, destination, and weight for edge %d: ", i + 1);
-        scanf("%d %d %d", &src, &dest, &weight);
-        if (src >= 0 && src < num && dest >= 0 && dest < num) {
-            addEdge(&graph, src, dest, weight);
-        } else {
-            printf("Invalid location.\n");
-            i--;
+Sample output:
+
+Vertex   Distance from Source
+0        0
+1        7
+2        8
+3        9
+4        5
+
+
+Scenario 2: A game character needs to find the shortest path from its 
+current position to a goal location on a grid. The game uses pointers 
+to represent the grid dynamically, and the algorithm should consider 
+obstacles along the path
+
+
+#include<stdio.h>
+#include<stdlib.h>
+
+#define MAX_SIZE 100
+#define INF 99999
+
+typedef struct{
+    int x,y;
+    int distance;
+} Node;
+
+int directions[4][2]={{-1,0},{1,0},{0,-1},{0,1}};
+
+int isValid(int x,int y,int rows,int cols,int** grid,int** visited){
+    return(x>=0 && x < rows && y>=0 && y< cols && grid[x][y]==0 && !visited[x][y]);
+}
+
+int findShortestPath(int** grid,int rows,int cols,int startX,int startY,int goalX,int goalY){
+    int** visited=(int**)malloc(rows*sizeof(int*));
+    for(int i=0;i< rows;i++){
+        visited[i] =(int*)calloc(cols,sizeof(int));
+    }
+
+    Node queue[MAX_SIZE*MAX_SIZE];
+    int front=0,rear=0;
+    
+    queue[rear++] =(Node){startX,startY,0};
+    visited[startX][startY]=1;
+
+    while(front< rear){
+        Node current=queue[front++];
+        
+        if(current.x==goalX && current.y==goalY){
+            for(int i=0;i< rows;i++) free(visited[i]);
+            free(visited);
+            return current.distance;
+        }
+
+        for(int i=0;i< 4;i++){
+            int newX=current.x + directions[i][0];
+            int newY=current.y + directions[i][1];
+
+            if(isValid(newX,newY,rows,cols,grid,visited)){
+                visited[newX][newY]=1;
+                queue[rear++] =(Node){newX,newY,current.distance + 1};
+            }
         }
     }
 
-    printf("Enter the starting location for the trucks: ");
-    scanf("%d", &src);
-    if (src < 0 || src >= num) return 1;
+    for(int i=0;i< rows;i++) free(visited[i]);
+    free(visited);
+    return -1;
+}
 
-    while (1) {
-        printf("\nDo you want to add a new route? (1 for Yes, 0 for No): ");
-        scanf("%d", &choice);
-        if (choice == 0) break;
+int main(){
+    int rows,cols;
+    printf("Enter number of rows and columns: ");
+    scanf("%d %d",&rows,&cols);
 
-        int new_src, new_dest, new_weight;
-        printf("Enter new source, destination, and weight: ");
-        scanf("%d %d %d", &new_src, &new_dest, &new_weight);
-        if (new_src >= 0 && new_src < num && new_dest >= 0 && new_dest < num) {
-            addEdge(&graph, new_src, new_dest, new_weight);
-        } else {
-            printf("Invalid location.\n");
+    int** grid =(int**)malloc(rows*sizeof(int*));
+    for(int i=0;i< rows;i++){
+        grid[i] =(int*)malloc(cols*sizeof(int));
+    }
+
+    printf("Enter the grid(0 for open space,1 for obstacle):\n");
+    for(int i=0;i< rows;i++){
+        for(int j=0;j< cols;j++){
+            scanf("%d",&grid[i][j]);
         }
     }
 
-    printf("\nRe-calculating shortest paths from location %d...\n", src);
-    dijkstra(&graph, src);
+    int startX,startY,goalX,goalY;
+    printf("Enter start position(x y): ");
+    scanf("%d %d",&startX,&startY);
+    printf("Enter goal position(x y): ");
+    scanf("%d %d",&goalX,&goalY);
+
+    int result=findShortestPath(grid,rows,cols,startX,startY,goalX,goalY);
+    if(result != -1){
+        printf("Shortest path length: %d\n",result);
+    } else{
+        printf("No path found.\n");
+    }
+
+    for(int i=0;i< rows;i++){
+        free(grid[i]);
+    }
+    free(grid);
+    return 0;
+}
+
+
+
+Sample output:
+
+Enter number of rows and columns: 5 5
+Enter the grid (0 for open space, 1 for obstacle):
+0 0 1 0 0
+0 1 1 0 0
+0 0 0 0 0
+1 1 0 1 0
+0 0 0 1 0
+Enter start position (x y): 0 0
+Enter goal position (x y): 4 4
+Shortest path length: 8
+
+
+
+
+Scenario 3: A logistics company needs to calculate the shortest route for a 
+fleet of trucks to travel between multiple warehouses and client locations. 
+The routes are represented as a weighted graph, and the program should allow 
+dynamic updates as new destinations are added.
+
+
+#include<stdio.h>
+#include<stdlib.h>
+#include<limits.h>
+
+#define INF INT_MAX
+
+int findMinDistance(int* distance,int* visited,int numNodes){
+    int min=INF,minIndex;
+    for(int i=0;i< numNodes;i++){
+        if(!visited[i] && distance[i]<= min){
+            min=distance[i];
+            minIndex=i;
+        }
+    }
+    return minIndex;
+}
+
+void dijkstra(int** graph,int numNodes,int startNode){
+    int* distance =(int*)malloc(numNodes*sizeof(int));
+    int* visited =(int*)calloc(numNodes,sizeof(int));
+
+    for(int i=0;i< numNodes;i++){
+        distance[i]=INF;
+    }
+    distance[startNode]=0;
+
+    for(int count=0;count< numNodes - 1;count++){
+        int u=findMinDistance(distance,visited,numNodes);
+        visited[u]=1;
+
+        for(int v=0;v< numNodes;v++){
+            if(!visited[v] && graph[u][v] && distance[u] != INF && distance[u] + graph[u][v]< distance[v]){
+                distance[v]=distance[u] + graph[u][v];
+            }
+        }
+    }
+
+    printf("Node\tDistance from Source\n");
+    for(int i=0;i< numNodes;i++){
+        if(distance[i]==INF){
+            printf("%d\tINF\n",i);
+        } else{
+            printf("%d\t%d\n",i,distance[i]);
+        }
+    }
+
+    free(distance);
+    free(visited);
+}
+
+int main(){
+    int numNodes;
+    printf("Enter the number of nodes(warehouses and clients): ");
+    scanf("%d",&numNodes);
+
+    int** graph =(int**)malloc(numNodes*sizeof(int*));
+    for(int i=0;i< numNodes;i++){
+        graph[i] =(int*)malloc(numNodes*sizeof(int));
+        for(int j=0;j< numNodes;j++){
+            printf("Enter weight of edge from %d to %d(0 if no edge): ",i,j);
+            scanf("%d",&graph[i][j]);
+            if(i != j && graph[i][j]==0){
+                graph[i][j]=INF;// No edge
+            }
+        }
+    }
+
+    int startNode;
+    printf("Enter the starting node: ");
+    scanf("%d",&startNode);
+
+    dijkstra(graph,numNodes,startNode);
+
+    for(int i=0;i< numNodes;i++){
+        free(graph[i]);
+    }
+    free(graph);
 
     return 0;
 }
 
+Sample output:
+
+Enter the number of nodes (warehouses and clients): 4
+Enter weight of edge from 0 to 0: 0
+Enter weight of edge from 0 to 1: 10
+Enter weight of edge from 0 to 2: 15
+Enter weight of edge from 0 to 3: 0
+Enter weight of edge from 1 to 0: 10
+Enter weight of edge from 1 to 1: 0
+Enter weight of edge from 1 to 2: 35
+Enter weight of edge from 1 to 3: 25
+Enter weight of edge from 2 to 0: 15
+Enter weight of edge from 2 to 1: 35
+Enter weight of edge from 2 to 2: 0
+Enter weight of edge from 2 to 3: 30
+Enter weight of edge from 3 to 0: 0
+Enter weight of edge from 3 to 1: 25
+Enter weight of edge from 3 to 2: 30
+Enter weight of edge from 3 to 3: 0
+Enter the starting node: 0
+Node    Distance from Source
+0       0
+1       10
+2       15
+3       35
 
