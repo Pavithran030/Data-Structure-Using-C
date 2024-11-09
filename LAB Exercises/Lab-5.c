@@ -1,125 +1,128 @@
-/*Initialize an empty Binary Search Tree (BST) for books.
-Display a menu with options to add, find, show, or exit.
-Process user choices for adding a book, finding a book by ISBN, or displaying books.
-Ensure books are correctly positioned in the BST based on their ISBN.
-Repeat the menu and processing until the user chooses to exit.
-*/
+//SCENARIO-1
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include<stdio.h>
+#include<stdlib.h>
+#include<string.h>
 
-struct Book {
+typedef struct Book{
+    char isbn[20];  
     char title[100];
     char author[100];
-    char isbn[20];
-    struct Book* left;
-    struct Book* right;
-};
+    float price;
+}Book;
 
-struct Book* createBook(const char* title, const char* author, const char* isbn) {
-    struct Book* newBook = (struct Book*)malloc(sizeof(struct Book));
-    strcpy(newBook->title, title);
-    strcpy(newBook->author, author);
-    strcpy(newBook->isbn, isbn);
-    newBook->left = newBook->right = NULL;
-    return newBook;
+typedef struct Node{
+    Book book;
+    struct Node *left;
+    struct Node *right;
+}Node;
+
+Node* createNode(Book book){
+    Node* newNode=(Node*)malloc(sizeof(Node));
+    newNode->book=book;
+    newNode->left=NULL;
+    newNode->right=NULL;
+    return newNode;
 }
 
-struct Book* addBook(struct Book* root, struct Book* newBook) {
-    if (root == NULL) {
-        return newBook;
+Node* insert(Node* root,Book book){
+    if(root==NULL){
+        return createNode(book);
     }
-    if (strcmp(newBook->isbn, root->isbn) < 0) {
-        root->left = addBook(root->left, newBook);
-    } else if (strcmp(newBook->isbn, root->isbn) > 0) {
-        root->right = addBook(root->right, newBook);
+    if(strcmp(book.isbn,root->book.isbn)<0){
+        root->left=insert(root->left,book);
+    }else if(strcmp(book.isbn,root->book.isbn)>0){
+        root->right=insert(root->right,book);
     }
     return root;
 }
 
-struct Book* findBook(struct Book* root, const char* isbn) {
-    if (root == NULL || strcmp(root->isbn, isbn) == 0) {
-        return root;
+Book* search(Node* root,const char* isbn){
+    if(root==NULL){
+        return NULL;
     }
-    if (strcmp(isbn, root->isbn) < 0) {
-        return findBook(root->left, isbn);
-    } else {
-        return findBook(root->right, isbn);
+    if(strcmp(isbn,root->book.isbn)==0){
+        return &root->book;
+    }else if(strcmp(isbn,root->book.isbn)< 0){
+        return search(root->left,isbn);
+    }else{
+        return search(root->right,isbn);
     }
 }
 
-void showBooksInOrder(struct Book* root) {
-    if (root == NULL) {
-        return;
+void displaySorted(Node* root){
+    if(root != NULL){
+        displaySorted(root->left);
+        printf("ISBN: %s,Title: %s,Author: %s,Price: %.2f\n",
+               root->book.isbn,root->book.title,root->book.author,root->book.price);
+        displaySorted(root->right);
     }
-    showBooksInOrder(root->left);
-    printf("    Title : %s\n    Author: %s\n    ISBN  : %s\n", root->title, root->author, root->isbn);
-    showBooksInOrder(root->right);
 }
 
-int main() {
-    struct Book* root = NULL;
-    int option;
-    char title[100], author[100], isbn[20];
-
-    do {
+int main(){
+    Node* root=NULL;
+    int choice;
+    
+    do{
         printf("\nMenu:\n");
-        printf("1. Add a new book\n");
-        printf("2. Find a book by ISBN\n");
-        printf("3. Show all books in sorted order\n");
+        printf("1. Insert a new book\n");
+        printf("2. Search for a book by ISBN\n");
+        printf("3. Display all books\n");
         printf("4. Exit\n");
         printf("Enter your choice: ");
-        scanf("%d", &option);
-        getchar();
+        scanf("%d",&choice);
+        getchar(); 
+        switch(choice){
+            case 1:{
+                Book newBook;
+                printf("Enter ISBN: ");
+                fgets(newBook.isbn,sizeof(newBook.isbn),stdin);
+                newBook.isbn[strcspn(newBook.isbn,"\n")]=0; 
+                
+                printf("Enter Title: ");
+                fgets(newBook.title,sizeof(newBook.title),stdin);
+                newBook.title[strcspn(newBook.title,"\n")]=0; 
 
-        switch (option) {
-            case 1:
-                printf("Enter book title: ");
-                fgets(title, sizeof(title), stdin);
-                title[strcspn(title, "\n")] = 0;
-
-                printf("Enter author name: ");
-                fgets(author, sizeof(author), stdin);
-                author[strcspn(author, "\n")] = 0; 
-
-                printf("Enter ISBN number: ");
-                fgets(isbn, sizeof(isbn), stdin);
-                isbn[strcspn(isbn, "\n")] = 0;
-
-                root = addBook(root, createBook(title, author, isbn));
+                printf("Enter Author: ");
+                fgets(newBook.author,sizeof(newBook.author),stdin);
+                newBook.author[strcspn(newBook.author,"\n")]=0; 
+                printf("Enter Price: ");
+                scanf("%f",&newBook.price);
+                getchar(); 
+                
+                root=insert(root,newBook);
+                printf("Book inserted successfully!\n");
                 break;
+            }
+            case 2:{
+                char isbn[20];
+                printf("Enter ISBN to search: ");
+                fgets(isbn,sizeof(isbn),stdin);
+                isbn[strcspn(isbn,"\n")]=0; 
 
-            case 2:
-                printf("Enter ISBN to find: ");
-                fgets(isbn, sizeof(isbn), stdin);
-                isbn[strcspn(isbn, "\n")] = 0; 
-
-                struct Book* foundBook = findBook(root, isbn);
-                if (foundBook) {
-                    printf("Book Found...........");
-                    printf("    Book Name: %s \n    Author     : %s  (ISBN : %s)\n", foundBook->title, foundBook->author, foundBook->isbn);
-                } else {
-                    printf("Book not found.\n");
+                Book* foundBook=search(root,isbn);
+                if(foundBook != NULL){
+                    printf("Found: ISBN: %s,Title: %s,Author: %s,Price: %.2f\n",
+                           foundBook->isbn,foundBook->title,foundBook->author,foundBook->price);
+                }else{
+                    printf("Book with ISBN %s not found.\n",isbn);
                 }
                 break;
-
+            }
             case 3:
                 printf("Books in sorted order:\n");
-                showBooksInOrder(root);
+                displaySorted(root);
                 break;
-
             case 4:
-                printf("Exiting...\n");
+                printf("Exiting the program.\n");
                 break;
-
             default:
                 printf("Invalid choice. Please try again.\n");
         }
-    } while (option != 4);
-
-    return 0;
+    }while(choice != 4);
+ return 0;
 }
 
 
+//SCWNARIO-2
 
